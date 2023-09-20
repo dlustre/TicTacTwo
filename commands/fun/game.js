@@ -1,3 +1,8 @@
+//TODO: change color to green/red on win
+//TODO: include usernames in embed 
+//TODO: update user wins and keep board displayed post-win
+//TODO: remove buttons on win
+//IDEA: rematch button 
 const { AttachmentBuilder, SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
 const getBoardImage = require('../../getBoardImage');
 
@@ -6,7 +11,7 @@ const DEBUG = false;
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('game')
-        .setDescription('Da game')
+        .setDescription('Start game against an opponent')
         .addUserOption(option =>
             option.setName('opponent')
                 .setDescription('Select an opponent')
@@ -15,6 +20,7 @@ module.exports = {
         const path = './assets/screenshot.png';
         const opponent = interaction.options.getUser('opponent');
         const board = ['', '', '', '', '', '', '', '', ''];
+        let isXsTurn = true;
 
         try {
             const screenshotPath = await getBoardImage(path, board);
@@ -60,38 +66,66 @@ module.exports = {
         };
 
         const collector = response.createMessageComponentCollector({
-            componentType: 2,
+            componentType: 2, // 2 = button 
             filter: collectorFilter,
             time: 3_600_000,
         });
 
         collector.on('collect', async i => {
             const buttonId = parseInt(i.customId);
-            if (!isNaN(buttonId) && board[buttonId] === '') {
+            if (!isNaN(buttonId) && board[buttonId] === '' ) {
                 // Check if the button is a valid move
+                if ((isXsTurn && i.user.id === interaction.user.id) || (!isXsTurn && i.user.id === opponent.id)){
+                    
+                    // Update the board with the player's move
+                    if (i.user.id === interaction.user.id) {
+                        board[buttonId] = 'X'; // For example, set 'X' for the player who clicked
+                    } else {
+                        board[buttonId] = 'O';
+                    }
+    
+    
+                    // Create a new screenshot with the updated board
+                    try {
+                        const screenshotPath = await getBoardImage(path, board);
+                        DEBUG && console.log(`Image successfully updated at ${screenshotPath}.`);
+                    } catch (error) {
+                        console.error('Error updating the image:', error);
+                    }
+    
+                    // Update the message with the new screenshot
+                    const updatedFile = new AttachmentBuilder('assets/screenshot.png');
+                    await i.update({
+                        files: [updatedFile],
+                    });
 
+                    isXsTurn = !isXsTurn
+                    // Danny's game Logic///////////////////////////
+                    const winnerIndex = [[0,1,2], [3,4,5], [6,7,8], [0,3,6], [1,4,7], [2,5,8], [6,4,2], [0,4,8]];
+                    for(let index = 0; index < 8; index++){
+                        if(board[winnerIndex[i][0]] === 'X' && board[winnerIndex[i][1]] === 'X' && board[winnerIndex[i][2]] === 'X'){
 
-                // Update the board with the player's move
-                if (i.user.id === interaction.user.id) {
-                    board[buttonId] = 'X'; // For example, set 'X' for the player who clicked
-                } else {
-                    board[buttonId] = 'O';
+                        }
+                        else if(board[winnerIndex[i][0]] === 'O' && board[winnerIndex[i][1]] === 'O' && board[winnerIndex[i][2]] === 'O'){
+
+                        }
+
+                        else if(board.every(square => square !== '')){
+
+                        }
+                    }
+                    ////////////////////////////////////////////////
+                }   
+                else{
+                    await i.reply({
+                        content: "It's not your turn.",
+                        ephemeral: true, // This makes the response visible only to the user who clicked the button
+                    });
                 }
 
 
-                // Create a new screenshot with the updated board
-                try {
-                    const screenshotPath = await getBoardImage(path, board);
-                    DEBUG && console.log(`Image successfully updated at ${screenshotPath}.`);
-                } catch (error) {
-                    console.error('Error updating the image:', error);
-                }
 
-                // Update the message with the new screenshot
-                const updatedFile = new AttachmentBuilder('assets/screenshot.png');
-                await i.update({
-                    files: [updatedFile],
-                });
+
             } else {
                 // Invalid move, send a response to the user indicating that the move is not allowed
                 await i.reply({
