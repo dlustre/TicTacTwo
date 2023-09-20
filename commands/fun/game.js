@@ -73,18 +73,31 @@ module.exports = {
 
         collector.on('collect', async i => {
             const buttonId = parseInt(i.customId);
-            if (!isNaN(buttonId) && board[buttonId] === '' ) {
+            if (!isNaN(buttonId) && board[buttonId] === '') {
                 // Check if the button is a valid move
-                if ((isXsTurn && i.user.id === interaction.user.id) || (!isXsTurn && i.user.id === opponent.id)){
-                    
+                if ((isXsTurn && i.user.id === interaction.user.id) || (!isXsTurn && i.user.id === opponent.id)) {
+
                     // Update the board with the player's move
                     if (i.user.id === interaction.user.id) {
                         board[buttonId] = 'X'; // For example, set 'X' for the player who clicked
                     } else {
                         board[buttonId] = 'O';
                     }
-    
-    
+
+                    // Disable pressed button
+                    const whichRow = Math.floor(buttonId / 3)
+                    switch (whichRow) {
+                        case 0:
+                            row1.components[buttonId].setDisabled(true);
+                            break;
+                        case 1:
+                            row2.components[buttonId - 3].setDisabled(true);
+                            break;
+                        case 2:
+                            row3.components[buttonId - 6].setDisabled(true);
+                            break;
+                    }
+
                     // Create a new screenshot with the updated board
                     try {
                         const screenshotPath = await getBoardImage(path, board);
@@ -92,33 +105,31 @@ module.exports = {
                     } catch (error) {
                         console.error('Error updating the image:', error);
                     }
-    
+
                     // Update the message with the new screenshot
                     const updatedFile = new AttachmentBuilder('assets/screenshot.png');
-                    await i.update({
-                        files: [updatedFile],
-                    });
+                    await i.update({ files: [updatedFile], components: [row1, row2, row3] });
 
                     isXsTurn = !isXsTurn
                     // Danny's game Logic///////////////////////////
-                    const winnerIndex = [[0,1,2], [3,4,5], [6,7,8], [0,3,6], [1,4,7], [2,5,8], [6,4,2], [0,4,8]];
-                    for(let index = 0; index < 8; index++){
-                        if(board[winnerIndex[i][0]] === 'X' && board[winnerIndex[i][1]] === 'X' && board[winnerIndex[i][2]] === 'X'){
-
-                        }
-                        else if(board[winnerIndex[i][0]] === 'O' && board[winnerIndex[i][1]] === 'O' && board[winnerIndex[i][2]] === 'O'){
-
-                        }
-
-                        else if(board.every(square => square !== '')){
-
+                    const winnerIndex = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [6, 4, 2], [0, 4, 8]];
+                    for (let idx = 0; idx < 8; idx++) {
+                        if (board[winnerIndex[idx][0]] === 'X' && board[winnerIndex[idx][1]] === 'X' && board[winnerIndex[idx][2]] === 'X') {
+                            console.log('X wins');
+                            break;
+                        } else if (board[winnerIndex[idx][0]] === 'O' && board[winnerIndex[idx][1]] === 'O' && board[winnerIndex[idx][2]] === 'O') {
+                            console.log('O wins');
+                            break;
+                        } else if (board.every(square => square !== '')) {
+                            console.log("It's a tie");
+                            break;
                         }
                     }
                     ////////////////////////////////////////////////
-                }   
-                else{
+                }
+                else {
                     await i.reply({
-                        content: "It's not your turn.",
+                        content: "It's not your turn yet!",
                         ephemeral: true, // This makes the response visible only to the user who clicked the button
                     });
                 }
