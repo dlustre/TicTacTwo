@@ -1,0 +1,29 @@
+.square {
+    border-radius: 8px;
+    color: #6aafff;
+    text-shadow: 0 0.01em 0.5em #60aaff;
+    background: 0;
+    border: 2px solid #60aaff;
+    float: left;
+    font-size: 30px;
+    font-weight: bold;
+    line-height: 48px;
+    height: 50px;
+    margin-right: 10px;
+    margin-top: 10px;
+    padding: 0;
+    text-align: center;
+    width: 50px;
+    white-space: nowrap;
+}
+
+.square:hover {
+    transition: background-color 0.3s ease-in-out;
+    background-color: #ffffff10;
+}
+
+.board-row:after {
+    clear: both;
+    content: "";
+    display: table;
+}
