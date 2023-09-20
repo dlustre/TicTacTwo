@@ -1,7 +1,4 @@
-//TODO: change color to green/red on win
-//TODO: include usernames in embed 
-//TODO: update user wins and keep board displayed post-win
-//TODO: remove buttons on win
+//TODO: update user stats
 //IDEA: rematch button 
 const { AttachmentBuilder, SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
 const getBoardImage = require('../../getBoardImage');
@@ -21,9 +18,16 @@ module.exports = {
         const opponent = interaction.options.getUser('opponent');
         const board = ['', '', '', '', '', '', '', '', ''];
         let isXsTurn = true;
+        let gameFinished = false;
+
+        const green = '#66FF00';
+        const red = '#FF0800';
+        const yellow = '#FFC300';
+        const blue = '#6aafff';
+        let color = blue;
 
         try {
-            const screenshotPath = await getBoardImage(path, board);
+            const screenshotPath = await getBoardImage(path, board, isXsTurn, interaction.user.globalName, opponent.globalName, color);
             DEBUG && console.log(`Image successfully created at ${screenshotPath}.`);
         } catch (error) {
             console.error('Error creating the image:', error);
@@ -98,9 +102,36 @@ module.exports = {
                             break;
                     }
 
+
+                    // Danny's game logic ///////////////////////////
+                    const winnerIndex = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [6, 4, 2], [0, 4, 8]];
+                    for (let idx = 0; idx < 8; idx++) {
+                        if (board[winnerIndex[idx][0]] === 'X' && board[winnerIndex[idx][1]] === 'X' && board[winnerIndex[idx][2]] === 'X') {
+                            DEBUG && console.log('X wins');
+                            color = red;
+                            isXsTurn = !isXsTurn;
+                            gameFinished = true;
+                            break;
+                        } else if (board[winnerIndex[idx][0]] === 'O' && board[winnerIndex[idx][1]] === 'O' && board[winnerIndex[idx][2]] === 'O') {
+                            DEBUG && console.log('O wins');
+                            color = green;
+                            isXsTurn = !isXsTurn;
+                            gameFinished = true;
+                            break;
+                        }
+                    }
+
+                    if (!gameFinished && board.every(square => square !== '')) {
+                        DEBUG && console.log("It's a tie");
+                        color = yellow;
+                        gameFinished = true;
+                    }
+                    ////////////////////////////////////////////////
+
                     // Create a new screenshot with the updated board
+                    isXsTurn = !isXsTurn
                     try {
-                        const screenshotPath = await getBoardImage(path, board);
+                        const screenshotPath = await getBoardImage(path, board, isXsTurn, interaction.user.globalName, opponent.globalName, color);
                         DEBUG && console.log(`Image successfully updated at ${screenshotPath}.`);
                     } catch (error) {
                         console.error('Error updating the image:', error);
@@ -108,41 +139,33 @@ module.exports = {
 
                     // Update the message with the new screenshot
                     const updatedFile = new AttachmentBuilder('assets/screenshot.png');
-                    await i.update({ files: [updatedFile], components: [row1, row2, row3] });
-
-                    isXsTurn = !isXsTurn
-                    // Danny's game Logic///////////////////////////
-                    const winnerIndex = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [6, 4, 2], [0, 4, 8]];
-                    for (let idx = 0; idx < 8; idx++) {
-                        if (board[winnerIndex[idx][0]] === 'X' && board[winnerIndex[idx][1]] === 'X' && board[winnerIndex[idx][2]] === 'X') {
-                            console.log('X wins');
-                            break;
-                        } else if (board[winnerIndex[idx][0]] === 'O' && board[winnerIndex[idx][1]] === 'O' && board[winnerIndex[idx][2]] === 'O') {
-                            console.log('O wins');
-                            break;
-                        } else if (board.every(square => square !== '')) {
-                            console.log("It's a tie");
-                            break;
-                        }
+                    if (gameFinished) {
+                        await i.update({ files: [updatedFile], components: [] });
+                    } else {
+                        await i.update({ files: [updatedFile], components: [row1, row2, row3] });
                     }
-                    ////////////////////////////////////////////////
                 }
                 else {
                     await i.reply({
                         content: "It's not your turn yet!",
                         ephemeral: true, // This makes the response visible only to the user who clicked the button
-                    });
+                    })
+                        .then(msg => {
+                            setTimeout(() => msg.delete(), 2000)
+                        })
+                        .catch('Error sending not-your-move message:', console.error);
                 }
-
-
-
 
             } else {
                 // Invalid move, send a response to the user indicating that the move is not allowed
                 await i.reply({
                     content: "Invalid move. Please select an empty square.",
                     ephemeral: true, // This makes the response visible only to the user who clicked the button
-                });
+                })
+                    .then(msg => {
+                        setTimeout(() => msg.delete(), 2000)
+                    })
+                    .catch('Error sending invalid move message:', console.error);
             }
         });
     },
