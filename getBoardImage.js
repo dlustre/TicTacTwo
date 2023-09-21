@@ -7,7 +7,7 @@ const fs = require('fs');
  * @param {String[]} board An array of strings as the board.
  * @returns {} 
  */
-async function getBoardImage(path, board, isXsTurn, user1 = 'user1', user2 = 'user2', color = '') {
+async function getBoardImage(path, board, isXsTurn, user1 = 'user1', user2 = 'user2', winner = '', color = '') {
     return new Promise(async (resolve, reject) => {
         try {
             const browser = await puppeteer.launch({ headless: 'new' });
@@ -22,7 +22,7 @@ async function getBoardImage(path, board, isXsTurn, user1 = 'user1', user2 = 'us
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
                     <link rel="preconnect" href="https://fonts.googleapis.com">
                     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-                    <link href="https://fonts.googleapis.com/css2?family=Balthazar&display=swap" rel="stylesheet">
+                    <link href="https://fonts.googleapis.com/css2?family=Balthazar&family=Poppins:wght@700&display=swap" rel="stylesheet">                    
                     <title>Styled Squares</title>
                     <style>
                     /* Set the background to transparent */
@@ -32,6 +32,7 @@ async function getBoardImage(path, board, isXsTurn, user1 = 'user1', user2 = 'us
                         justify-content: center;
                         align-items: center;
                         flex-direction: column;
+                        font-family: 'Poppins', sans-serif;
                     }
 
                     h1 {
@@ -44,6 +45,7 @@ async function getBoardImage(path, board, isXsTurn, user1 = 'user1', user2 = 'us
                     }
         
                     .square {
+                        font-family: 'Poppins', sans-serif;
                         border-radius: 8px;
                         color: ${color ? color : '#6aafff'};
                         text-shadow: 0 0.01em 0.5em ${color ? color : '#6aafff'};
@@ -71,7 +73,7 @@ async function getBoardImage(path, board, isXsTurn, user1 = 'user1', user2 = 'us
                 </head>
                 <body>
                     <h1>
-                        <span ${isXsTurn && "class=\"glow\""}>${user1}</span> vs. <span ${!isXsTurn && "class=\"glow\""}>${user2}</span>
+                        <span ${((winner === 'X') || (isXsTurn && winner === '')) && "class=\"glow\""}>${user1}</span> vs. <span ${((winner === 'O') || (!isXsTurn && winner === '')) && "class=\"glow\""}>${user2}</span>
                     </h1>
                     <div id="board">
                         <div class="board-row">

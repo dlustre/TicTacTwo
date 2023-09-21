@@ -18,7 +18,7 @@ module.exports = {
         const opponent = interaction.options.getUser('opponent');
         const board = ['', '', '', '', '', '', '', '', ''];
         let isXsTurn = true;
-        let gameFinished = false;
+        let winner = '';
 
         const green = '#66FF00';
         const red = '#FF0800';
@@ -44,7 +44,7 @@ module.exports = {
             buttons.push(
                 new ButtonBuilder()
                     .setCustomId(`${i}`)
-                    .setLabel(`${i}`)
+                    .setLabel('\u2800')
                     .setStyle(ButtonStyle.Primary)
             );
         }
@@ -82,23 +82,26 @@ module.exports = {
                 if ((isXsTurn && i.user.id === interaction.user.id) || (!isXsTurn && i.user.id === opponent.id)) {
 
                     // Update the board with the player's move
-                    if (i.user.id === interaction.user.id) {
-                        board[buttonId] = 'X'; // For example, set 'X' for the player who clicked
-                    } else {
-                        board[buttonId] = 'O';
-                    }
+                    const moveSymbol = isXsTurn ? 'X' : 'O';
+                    board[buttonId] = moveSymbol;
 
                     // Disable pressed button
                     const whichRow = Math.floor(buttonId / 3)
                     switch (whichRow) {
                         case 0:
                             row1.components[buttonId].setDisabled(true);
+                            row1.components[buttonId].setLabel(moveSymbol);
+                            row1.components[buttonId].setStyle(ButtonStyle.Secondary);
                             break;
                         case 1:
                             row2.components[buttonId - 3].setDisabled(true);
+                            row2.components[buttonId - 3].setLabel(moveSymbol);
+                            row2.components[buttonId - 3].setStyle(ButtonStyle.Secondary);
                             break;
                         case 2:
                             row3.components[buttonId - 6].setDisabled(true);
+                            row3.components[buttonId - 6].setLabel(moveSymbol);
+                            row3.components[buttonId - 6].setStyle(ButtonStyle.Secondary);
                             break;
                     }
 
@@ -109,29 +112,27 @@ module.exports = {
                         if (board[winnerIndex[idx][0]] === 'X' && board[winnerIndex[idx][1]] === 'X' && board[winnerIndex[idx][2]] === 'X') {
                             DEBUG && console.log('X wins');
                             color = red;
-                            isXsTurn = !isXsTurn;
-                            gameFinished = true;
+                            winner = 'X';
                             break;
                         } else if (board[winnerIndex[idx][0]] === 'O' && board[winnerIndex[idx][1]] === 'O' && board[winnerIndex[idx][2]] === 'O') {
                             DEBUG && console.log('O wins');
                             color = green;
-                            isXsTurn = !isXsTurn;
-                            gameFinished = true;
+                            winner = 'O';
                             break;
                         }
                     }
 
-                    if (!gameFinished && board.every(square => square !== '')) {
+                    if (!winner && board.every(square => square !== '')) {
                         DEBUG && console.log("It's a tie");
                         color = yellow;
-                        gameFinished = true;
+                        winner = true;
                     }
                     ////////////////////////////////////////////////
 
                     // Create a new screenshot with the updated board
                     isXsTurn = !isXsTurn
                     try {
-                        const screenshotPath = await getBoardImage(path, board, isXsTurn, interaction.user.globalName, opponent.globalName, color);
+                        const screenshotPath = await getBoardImage(path, board, isXsTurn, interaction.user.globalName, opponent.globalName, winner, color);
                         DEBUG && console.log(`Image successfully updated at ${screenshotPath}.`);
                     } catch (error) {
                         console.error('Error updating the image:', error);
@@ -139,7 +140,7 @@ module.exports = {
 
                     // Update the message with the new screenshot
                     const updatedFile = new AttachmentBuilder('assets/screenshot.png');
-                    if (gameFinished) {
+                    if (winner) {
                         await i.update({ files: [updatedFile], components: [] });
                     } else {
                         await i.update({ files: [updatedFile], components: [row1, row2, row3] });
